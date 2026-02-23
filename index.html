@@ -11,38 +11,25 @@
     
     <style>
         body { font-family: 'Noto Sans HK', sans-serif; background-color: #F8FAFC; }
-        .clinic-card { transition: all 0.2s; border: 1px solid #e2e8f0; cursor: pointer; }
-        .clinic-card:hover { border-color: #f97316; box-shadow: 0 4px 12px rgba(249, 115, 22, 0.1); }
+        .clinic-card { transition: all 0.2s; border: 1px solid #e2e8f0; }
+        .clinic-card:hover { border-color: #f97316; }
+        
+        /* 診所名連結樣式 */
+        .clinic-link { color: #f97316; transition: all 0.2s; text-decoration: none; }
+        .clinic-link:hover { text-decoration: underline; opacity: 0.8; }
+        
         .filter-active { background-color: #f97316 !important; color: white !important; }
-        
-        /* 手機版隱藏地圖，電腦版顯示 */
-        #desktopMap { height: calc(100vh - 80px); width: 100%; sticky: top 80px; }
-        
-        /* 手機 Quick Map Modal (只喺手機顯示) */
-        #quickMapModal {
-            display: none;
-            position: fixed;
-            bottom: 0; left: 0; width: 100%; height: 70vh;
-            background: white; z-index: 3000;
-            border-radius: 30px 30px 0 0;
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
-            animation: slideIn 0.3s ease-out;
-        }
-        
-        @keyframes slideIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        #desktopMap { height: calc(100vh - 80px); width: 100%; }
     </style>
 </head>
-<body class="overflow-hidden md:overflow-auto">
+<body class="md:overflow-hidden">
 
     <header class="sticky top-0 z-[1000] bg-white border-b border-gray-100 shadow-sm">
         <div class="max-w-[1440px] mx-auto p-4 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-                <button class="text-xl text-gray-400 md:hidden">☰</button>
-                <div onclick="goHome()" class="flex items-center gap-1 cursor-pointer">
-                    <span class="text-2xl">🐾</span>
-                    <span class="text-xl font-bold text-orange-500">PetPetDoc</span>
-                </div>
+            <div onclick="location.reload()" class="flex items-center gap-1 cursor-pointer min-w-max">
+                <span class="text-2xl">🐾</span>
+                <span class="text-xl font-bold text-orange-500">PetPetDoc</span>
             </div>
             
             <div class="relative flex-1 max-w-xl">
@@ -61,42 +48,19 @@
     <div class="flex flex-col md:flex-row max-w-[1440px] mx-auto h-[calc(100vh-80px)]">
         
         <aside class="w-full md:w-[450px] lg:w-[500px] h-full overflow-y-auto p-4 no-scrollbar">
-            <div class="md:hidden mb-4 flex gap-2 overflow-x-auto no-scrollbar pb-2">
-                <select id="areaFilter" onchange="filterClinics()" class="bg-white border px-3 py-2 rounded-xl text-xs font-bold">
-                    <option value="">全港地區</option>
-                    <option value="港島">港島區</option>
-                    <option value="九龍">九龍區</option>
-                </select>
-                <button id="m-btn24hr" onclick="toggleFilter('24hr')" class="bg-white border px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap">24H</button>
-                <button id="m-btnER" onclick="toggleFilter('ER')" class="bg-white border px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap">急症</button>
-            </div>
-
-            <div id="resultsCount" class="text-[10px] text-gray-400 font-bold mb-4 uppercase">名單更新中...</div>
-            
-            <div id="clinicContainer" class="space-y-4 pb-20 md:pb-4">
+            <div id="resultsCount" class="text-[10px] text-gray-400 font-bold mb-4 uppercase tracking-widest">正在載入名單...</div>
+            <div id="clinicContainer" class="space-y-4 pb-24 md:pb-4">
                 </div>
         </aside>
 
-        <main class="hidden md:block flex-1 bg-gray-200 relative">
+        <main class="hidden md:block flex-1 bg-gray-100">
             <div id="desktopMap"></div>
         </main>
     </div>
 
-    <div id="modalOverlay" class="fixed inset-0 bg-black/40 hidden z-[2999]" onclick="closeQuickMap()"></div>
-    <div id="quickMapModal" class="md:hidden">
-        <div class="absolute top-4 right-4 z-[3001]">
-            <button onclick="closeQuickMap()" class="bg-black/50 text-white w-10 h-10 rounded-full text-2xl">&times;</button>
-        </div>
-        <div id="quickMapCanvas" style="height: 100%; width: 100%;"></div>
-    </div>
-
-    <nav class="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white shadow-2xl rounded-full px-10 py-4 flex gap-12 z-[2000] border border-gray-100">
-        <button onclick="goHome()" class="text-orange-500 flex flex-col items-center">
-            <span class="text-xl">📋</span><span class="text-[9px] font-bold">名單</span>
-        </button>
-        <button onclick="alert('手機大地圖開發中')" class="text-gray-400 flex flex-col items-center">
-            <span class="text-xl">📍</span><span class="text-[9px] font-bold">地圖</span>
-        </button>
+    <nav class="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white shadow-2xl rounded-full px-12 py-4 z-[2000] border border-gray-100 flex gap-8">
+        <button onclick="location.reload()" class="text-orange-500 font-bold text-xs">📋 名單</button>
+        <button onclick="alert('地圖模式')" class="text-gray-400 font-bold text-xs">📍 地圖</button>
     </nav>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -109,98 +73,69 @@
         ];
 
         let filters = { is24hr: false, hasER: false };
-        let dMap = null; // 電腦地圖
-        let qMap = null; // 手機地圖
-        let dMarkers = [];
+        let dMap = null;
 
         function renderClinics(data) {
             const container = document.getElementById('clinicContainer');
-            document.getElementById('resultsCount').innerText = `共 ${data.length} 間診所`;
+            document.getElementById('resultsCount').innerText = `找到 ${data.length} 間診所`;
             
-            container.innerHTML = data.map(c => `
-                <div class="clinic-card bg-white p-5 rounded-[24px] shadow-sm flex flex-col gap-3" onclick="focusClinic(${c.lat}, ${c.lng}, '${c.name}')">
+            container.innerHTML = data.map(c => {
+                // 生成 Google 搜尋連結
+                const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(c.name + ' ' + c.area)}`;
+                
+                return `
+                <div class="clinic-card bg-white p-5 rounded-[22px] shadow-sm flex flex-col gap-3">
                     <div class="flex justify-between items-start">
                         <div class="flex-1">
                             <div class="flex items-center gap-2">
-                                <h3 class="font-bold text-gray-900 text-md">${c.name}</h3>
+                                <a href="${googleSearchUrl}" target="_blank" class="clinic-link font-bold text-lg leading-tight">
+                                    ${c.name}
+                                </a>
                                 ${c.is24hr ? '<span class="bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded font-bold">24H</span>' : ''}
                             </div>
                             <p class="text-[11px] text-gray-400 mt-1">${c.address}</p>
-                            <a href="tel:${c.phone}" class="text-orange-500 font-bold text-sm block mt-2">${c.phone}</a>
+                            <a href="tel:${c.phone}" class="text-gray-700 font-bold text-sm block mt-2">📞 ${c.phone}</a>
                         </div>
                         <div class="text-orange-500 font-bold text-xs bg-orange-50 px-2 py-1 rounded-lg">★ ${c.rating}</div>
                     </div>
-                    <button onclick="openQuickMap('${c.name}', ${c.lat}, ${c.lng})" class="md:hidden w-full bg-gray-50 py-3 rounded-xl text-xs font-bold border border-gray-100 mt-2">📍 查看位置</button>
+                    <button onclick="focusMap(${c.lat}, ${c.lng})" class="w-full bg-gray-50 py-3 rounded-xl text-[11px] font-bold text-gray-500 border border-gray-100 md:hidden">
+                        📍 查看位置
+                    </button>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
-        // --- 電腦版地圖邏輯 ---
-        function initDesktopMap() {
+        // 電腦版地圖初始化
+        function initMap() {
             if (window.innerWidth >= 768) {
                 dMap = L.map('desktopMap', { zoomControl: false }).setView([22.3193, 114.1694], 12);
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(dMap);
-                updateMarkers(clinics);
+                clinics.forEach(c => L.marker([c.lat, c.lng]).addTo(dMap).bindPopup(c.name));
             }
         }
 
-        function updateMarkers(data) {
-            if (!dMap) return;
-            dMarkers.forEach(m => dMap.removeLayer(m));
-            dMarkers = data.map(c => {
-                let m = L.marker([c.lat, c.lng]).addTo(dMap).bindPopup(`<b>${c.name}</b>`);
-                return m;
-            });
+        function focusMap(lat, lng) {
+            if (dMap) dMap.setView([lat, lng], 16);
+            else alert('地圖位置: ' + lat + ', ' + lng);
         }
 
-        function focusClinic(lat, lng, name) {
-            if (window.innerWidth >= 768 && dMap) {
-                dMap.setView([lat, lng], 16);
-            }
-        }
-
-        // --- 篩選功能 ---
         function filterClinics() {
             const q = document.getElementById('mainSearch').value.toLowerCase();
-            const filtered = clinics.filter(c => {
-                return c.name.toLowerCase().includes(q) &&
-                       (!filters.is24hr || c.is24hr) &&
-                       (!filters.hasER || c.hasER);
-            });
+            const filtered = clinics.filter(c => 
+                c.name.toLowerCase().includes(q) &&
+                (!filters.is24hr || c.is24hr) &&
+                (!filters.hasER || c.hasER)
+            );
             renderClinics(filtered);
-            updateMarkers(filtered);
         }
 
         function toggleFilter(type) {
             filters[type === '24hr' ? 'is24hr' : 'hasER'] = !filters[type === '24hr' ? 'is24hr' : 'hasER'];
-            // 同時更新手機同電腦版嘅制色
-            ['d-btn', 'm-btn'].forEach(p => {
-                const btn = document.getElementById(`${p}${type === '24hr' ? '24hr' : 'ER'}`);
-                if(btn) btn.classList.toggle('filter-active');
-            });
+            document.getElementById(`d-btn${type === '24hr' ? '24hr' : 'ER'}`).classList.toggle('filter-active');
             filterClinics();
         }
 
-        // --- 手機 Quick Map ---
-        function openQuickMap(name, lat, lng) {
-            document.getElementById('quickMapModal').style.display = 'block';
-            document.getElementById('modalOverlay').classList.remove('hidden');
-            if (!qMap) {
-                qMap = L.map('quickMapCanvas', { zoomControl: false });
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(qMap);
-            }
-            qMap.setView([lat, lng], 16);
-            L.marker([lat, lng]).addTo(qMap);
-            setTimeout(() => qMap.invalidateSize(), 300);
-        }
-
-        function closeQuickMap() {
-            document.getElementById('quickMapModal').style.display = 'none';
-            document.getElementById('modalOverlay').classList.add('hidden');
-        }
-
-        window.onload = () => { renderClinics(clinics); initDesktopMap(); };
-        function goHome() { location.reload(); }
+        window.onload = () => { renderClinics(clinics); initMap(); };
     </script>
 </body>
 </html>
