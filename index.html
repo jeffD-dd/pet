@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PetPetDoc | 港人寵物醫療評論網</title>
+    <title>PetPetDoc | 全港獸醫名單篩選</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -11,180 +11,170 @@
     
     <style>
         body { font-family: 'Noto Sans HK', sans-serif; background-color: #FFF9F2; }
-        #map { height: 450px; width: 100%; border-radius: 24px; z-index: 10; border: 4px solid white; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .tab-active { border-bottom: 4px solid #f97316; color: #f97316; }
-        
-        /* 側邊選單 */
-        #sidebar { transition: transform 0.3s ease-in-out; z-index: 1001; }
-        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; backdrop-filter: blur(2px); }
-        
-        /* 評論彈窗 */
-        #reviewModal { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-radius: 30px 30px 0 0; z-index: 2001; padding: 24px; box-shadow: 0 -10px 40px rgba(0,0,0,0.2); }
-        
-        .star-rating { font-size: 24px; color: #f97316; }
-        .comment-card { border-left: 4px solid #f97316; }
+        .filter-chip { transition: all 0.2s; border: 1px solid #fed7aa; }
+        .filter-chip.active { background-color: #f97316; color: white; border-color: #f97316; }
+        #map { height: 100%; width: 100%; }
+        .clinic-card { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        /* 隱藏滾動條 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="pb-24">
+<body class="bg-gray-50">
 
-    <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
-    <div id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-white shadow-2xl transform -translate-x-full">
-        <div class="p-6">
-            <h3 class="text-xl font-bold text-orange-500 mb-8">PetPetDoc</h3>
-            <ul class="space-y-6 font-bold text-gray-600">
-                <li onclick="alert('尚未開放')">👤 會員登入</li>
-                <li onclick="alert('尚未開放')">📍 地區分佈圖</li>
-                <li onclick="alert('尚未開放')">📜 專業文章</li>
-                <li class="pt-10 text-[10px] text-gray-300">Version 11.0.0 (2026)</li>
-            </ul>
-        </div>
-    </div>
-
-    <nav class="sticky top-0 z-50 p-4 bg-white/90 backdrop-blur-md flex justify-between items-center px-6">
-        <div class="flex items-center gap-4">
+    <header class="sticky top-0 z-[1000] bg-white shadow-md rounded-b-[30px]">
+        <div class="p-4 pb-2 flex items-center gap-3">
             <button onclick="toggleSidebar()" class="text-2xl text-gray-600">☰</button>
-            <div class="text-2xl font-bold text-orange-500">PetPetDoc</div>
+            <div class="relative flex-1">
+                <input type="text" id="mainSearch" onkeyup="filterClinics()" placeholder="輸入診所名或街道..." 
+                    class="w-full bg-gray-100 p-3 pl-10 rounded-xl text-sm outline-none focus:ring-2 ring-orange-400 transition-all">
+                <span class="absolute left-3 top-3 opacity-30">🔍</span>
+            </div>
+            <div class="text-orange-500 font-bold">PetPetDoc</div>
         </div>
-        <button onclick="openReviewModal()" class="bg-orange-500 text-white px-4 py-2 rounded-full font-bold text-xs">我有野評</button>
-    </nav>
 
-    <div class="flex justify-around bg-white border-b sticky top-[72px] z-40 text-sm font-bold">
-        <button id="btn-map" onclick="showSection('map-section')" class="py-4 px-4 tab-active">地圖搜尋</button>
-        <button id="btn-comment" onclick="showSection('comment-section')" class="py-4 px-4 text-gray-400">真實評論</button>
-        <button id="btn-deals" onclick="showSection('deals-section')" class="py-4 px-4 text-gray-400">著數優惠</button>
-    </div>
-
-    <section id="map-section" class="p-4 space-y-4">
-        <div class="relative">
-            <input type="text" id="searchInput" onkeyup="searchClinic()" placeholder="搜尋地區、診所..." class="w-full p-4 pl-12 rounded-2xl border-2 border-orange-100 shadow-sm outline-none">
-            <span class="absolute left-4 top-4">🔍</span>
-            <div id="searchResults" class="absolute w-full mt-2 rounded-2xl shadow-2xl max-h-64 overflow-y-auto hidden z-[2000] bg-white/95 backdrop-blur-md"></div>
-        </div>
-        <div class="relative">
-            <div id="map"></div>
-            <button onclick="locateUser()" class="fixed bottom-24 right-6 z-[1000] bg-white w-14 h-14 rounded-full flex items-center justify-center shadow-xl text-orange-500 text-2xl border-none">🎯</button>
-        </div>
-    </section>
-
-    <section id="comment-section" class="p-6 hidden space-y-6 animate-fade-in">
-        <div class="bg-gradient-to-r from-orange-400 to-orange-500 p-6 rounded-3xl text-white shadow-lg mb-8">
-            <p class="text-sm opacity-80">本週最高評價診所</p>
-            <h2 class="text-2xl font-bold">城大動物醫療中心 🐾</h2>
-            <div class="flex items-center gap-2 mt-2">
-                <span class="text-2xl font-bold">4.7</span>
-                <span class="text-xl">★★★★★</span>
+        <div class="px-4 pb-4 space-y-3">
+            <div class="flex gap-2 overflow-x-auto no-scrollbar">
+                <select id="areaFilter" onchange="filterClinics()" class="bg-orange-50 text-orange-700 px-3 py-2 rounded-lg text-xs font-bold border-none outline-none min-w-[100px]">
+                    <option value="">所有區域</option>
+                    <option value="灣仔">灣仔區</option>
+                    <option value="東區">東區</option>
+                    <option value="九龍城">九龍城區</option>
+                    <option value="旺角">油尖旺區</option>
+                    <option value="深水埗">深水埗區</option>
+                    <option value="沙田">沙田區</option>
+                    <option value="北區">北區</option>
+                    <option value="離島">離島區</option>
+                </select>
+                <button id="btn24hr" onclick="toggleFilter('24hr')" class="filter-chip bg-white px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap">🕒 24小時</button>
+                <button id="btnER" onclick="toggleFilter('ER')" class="filter-chip bg-white px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap">🚨 急症服務</button>
             </div>
         </div>
+    </header>
 
-        <div id="commentList" class="space-y-4">
-            <div class="bg-white p-5 rounded-3xl shadow-sm border border-orange-50 comment-card">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="font-bold text-gray-800">Pets Central 北角</span>
-                    <span class="text-orange-500 text-sm font-bold">★ 4.8</span>
+    <main class="p-4">
+        <div id="listView" class="space-y-4">
+            <div id="resultsCount" class="text-[10px] text-gray-400 font-bold px-2 uppercase tracking-widest">顯示所有診所</div>
+            <div id="clinicContainer" class="space-y-4">
                 </div>
-                <p class="text-xs text-gray-600 leading-relaxed italic">「帶貓貓去睇急症，環境好乾淨，護士態度好好，唔會一味叫你加錢做多餘野。」</p>
-                <div class="mt-2 text-[10px] text-gray-400">2026-02-23 • 用戶: MeowLover</div>
-            </div>
         </div>
-    </section>
 
-    <section id="deals-section" class="p-6 hidden">
-        <div class="bg-white p-5 rounded-2xl border border-orange-100 flex justify-between items-center">
-            <div><h4 class="font-bold">皇家貓糧 $50 券</h4><p class="text-xs text-gray-400 italic">全港 Pet Line 適用</p></div>
-            <button class="bg-orange-500 text-white px-5 py-2 rounded-xl text-xs font-bold">領取</button>
+        <div id="mapView" class="hidden fixed inset-0 z-[900] pt-[140px] bg-white">
+            <div id="map"></div>
         </div>
-    </section>
+    </main>
 
-    <div id="modalOverlay" class="fixed inset-0 bg-black/50 hidden z-[2000]" onclick="closeReviewModal()"></div>
-    <div id="reviewModal">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold">分享你的評價</h3>
-            <button onclick="closeReviewModal()" class="text-2xl">&times;</button>
-        </div>
-        <select class="w-full p-4 bg-gray-50 rounded-xl mb-4 text-sm font-bold outline-none border-none">
-            <option>選擇診所...</option>
-            <option>Pets Central 北角</option>
-            <option>NPV 非牟利獸醫</option>
-            <option>城大動物醫療中心</option>
-        </select>
-        <div class="flex gap-2 justify-center mb-4 star-rating">
-            <span>★</span><span>★</span><span>★</span><span>★</span><span class="text-gray-200">★</span>
-        </div>
-        <textarea placeholder="寫低你嘅心得（例如醫生好唔好、價錢公唔公道...）" class="w-full p-4 h-32 bg-gray-50 rounded-2xl mb-4 text-sm outline-none border-none"></textarea>
-        <button onclick="submitReview()" class="w-full bg-orange-500 text-white py-4 rounded-2xl font-bold shadow-xl active:scale-95 transition">提交評價</button>
-    </div>
+    <nav class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-lg rounded-full px-6 py-3 flex gap-8 z-[2000] shadow-2xl border border-white/20">
+        <button onclick="switchTab('list')" id="tab-list" class="text-white flex flex-col items-center gap-1">
+            <span class="text-xl">📋</span><span class="text-[10px] font-bold">名單</span>
+        </button>
+        <button onclick="switchTab('map')" id="tab-map" class="text-gray-400 flex flex-col items-center gap-1">
+            <span class="text-xl">📍</span><span class="text-[10px] font-bold">地圖</span>
+        </button>
+        <button onclick="location.reload()" class="text-gray-400 flex flex-col items-center gap-1">
+            <span class="text-xl">💬</span><span class="text-[10px] font-bold">評論</span>
+        </button>
+    </nav>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // --- 完整數據庫 ---
         const clinics = [
-            { name: "東區動物醫院", lat: 22.2795, lng: 114.2256, address: "筲箕灣道256號", phone: "29153999", rating: 4.5 },
-            { name: "Pets Central 北角", lat: 22.2908, lng: 114.2005, address: "北角渣華道70號", phone: "28118907", rating: 4.8 },
-            { name: "SPCA 灣仔總部", lat: 22.2825, lng: 114.1812, address: "灣仔運盛街5號", phone: "28020501", rating: 4.6 },
-            { name: "NPV 非牟利獸醫", lat: 22.3255, lng: 114.1678, address: "太子基隆街22號", phone: "23932070", rating: 4.2 },
-            { name: "城大動物醫療中心", lat: 22.3364, lng: 114.1485, address: "深水埗荔枝角道339號", phone: "36503000", rating: 4.7 }
+            { name: "Pets Central 北角", area: "東區", address: "北角渣華道70號", phone: "28118907", is24hr: true, hasER: true, rating: 4.8 },
+            { name: "東區動物醫院", area: "東區", address: "筲箕灣筲箕灣道256號", phone: "29153999", is24hr: false, hasER: true, rating: 4.5 },
+            { name: "SPCA 灣仔總部", area: "灣仔", address: "灣仔運盛街5號", phone: "28020501", is24hr: true, hasER: true, rating: 4.6 },
+            { name: "城大動物醫療中心", area: "深水埗", address: "荔枝角道339號", phone: "36503000", is24hr: true, hasER: true, rating: 4.7 },
+            { name: "NPV 非牟利獸醫診所", area: "旺角", address: "太子基隆街22號", phone: "23932070", is24hr: true, hasER: false, rating: 4.2 },
+            { name: "啟德動物醫院", area: "九龍城", address: "土瓜灣貴州街4N號", phone: "21164417", is24hr: false, hasER: false, rating: 4.0 },
+            { name: "東涌獸醫中心", area: "離島", address: "東涌海濱路8號", phone: "23287282", is24hr: false, hasER: false, rating: 4.3 }
         ];
 
-        var map = L.map('map', { zoomControl: false }).setView([22.3193, 114.1694], 12);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+        let activeFilters = { is24hr: false, hasER: false };
 
-        clinics.forEach(c => {
-            var m = L.marker([c.lat, c.lng], {
-                icon: L.divIcon({ html: `<div style="font-size:32px;">🏥</div>`, className: 'custom-icon' })
-            }).addTo(map);
-            m.bindPopup(`<div style="width:160px"><b style="color:#f97316;">${c.name}</b><br><span style="color:#f97316; font-size:12px;">評分: ★${c.rating}</span><br><a href="tel:${c.phone}" style="display:block; background:#f97316; color:white; text-align:center; padding:8px; border-radius:8px; margin-top:8px; text-decoration:none; font-weight:bold;">致電: ${c.phone}</a></div>`);
-            c.marker = m;
-        });
-
-        function toggleSidebar() {
-            const s = document.getElementById('sidebar');
-            const o = document.getElementById('sidebarOverlay');
-            const isOpen = s.style.transform === 'translateX(0%)';
-            s.style.transform = isOpen ? 'translateX(-100%)' : 'translateX(0%)';
-            o.style.display = isOpen ? 'none' : 'block';
+        // --- 初始化渲染 ---
+        function renderClinics(data) {
+            const container = document.getElementById('clinicContainer');
+            document.getElementById('resultsCount').innerText = `找到 ${data.length} 間診所`;
+            container.innerHTML = data.map(c => `
+                <div class="clinic-card bg-white p-5 rounded-[24px] shadow-sm border border-gray-100 flex flex-col gap-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-gray-800">${c.name}</h3>
+                                ${c.is24hr ? '<span class="bg-red-100 text-red-600 text-[9px] px-2 py-0.5 rounded-full font-bold">24HR</span>' : ''}
+                            </div>
+                            <p class="text-[11px] text-gray-400 mt-1">📍 ${c.area} · ${c.address}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-orange-500 font-bold text-sm">★ ${c.rating}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        ${c.hasER ? '<span class="bg-orange-100 text-orange-600 text-[10px] px-3 py-1 rounded-lg font-bold">🚑 急症提供</span>' : ''}
+                        <span class="bg-gray-100 text-gray-500 text-[10px] px-3 py-1 rounded-lg font-bold">📝 120+ 評論</span>
+                    </div>
+                    <div class="flex gap-2 mt-2">
+                        <a href="tel:${c.phone}" class="flex-1 bg-orange-500 text-white text-center py-3 rounded-xl font-bold text-xs shadow-md shadow-orange-200">即刻致電</a>
+                        <button class="bg-gray-50 text-gray-400 px-4 rounded-xl text-xs font-bold border border-gray-200">詳情</button>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        function openReviewModal() {
-            document.getElementById('reviewModal').style.display = 'block';
-            document.getElementById('modalOverlay').classList.remove('hidden');
-        }
-
-        function closeReviewModal() {
-            document.getElementById('reviewModal').style.display = 'none';
-            document.getElementById('modalOverlay').classList.add('hidden');
-        }
-
-        function submitReview() {
-            alert('感謝你的評價！審核後會顯示在列表中。');
-            closeReviewModal();
-        }
-
-        function showSection(id) {
-            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
-            ['btn-map', 'btn-comment', 'btn-deals'].forEach(b => {
-                document.getElementById(b).className = b === 'btn-' + id.split('-')[0] ? "py-4 px-4 tab-active font-bold" : "py-4 px-4 text-gray-400 font-bold";
+        // --- 核心篩選邏輯 ---
+        function filterClinics() {
+            const searchVal = document.getElementById('mainSearch').value.toLowerCase();
+            const areaVal = document.getElementById('areaFilter').value;
+            
+            const filtered = clinics.filter(c => {
+                const matchSearch = c.name.toLowerCase().includes(searchVal) || c.address.includes(searchVal);
+                const matchArea = areaVal === "" || c.area.includes(areaVal);
+                const match24 = activeFilters.is24hr ? c.is24hr : true;
+                const matchER = activeFilters.hasER ? c.hasER : true;
+                return matchSearch && matchArea && match24 && matchER;
             });
-            if(id === 'map-section') setTimeout(() => map.invalidateSize(), 300);
+            renderClinics(filtered);
         }
 
-        function searchClinic() {
-            const q = document.getElementById('searchInput').value.toLowerCase();
-            const res = document.getElementById('searchResults');
-            res.innerHTML = '';
-            if(!q) { res.classList.add('hidden'); return; }
-            const filtered = clinics.filter(c => c.name.includes(q));
-            if(filtered.length > 0) {
-                res.classList.remove('hidden');
-                filtered.forEach(c => {
-                    const d = document.createElement('div');
-                    d.className = "p-4 border-b border-orange-50";
-                    d.innerHTML = `<div class="font-bold text-sm">${c.name} <span class="text-orange-400">★${c.rating}</span></div>`;
-                    d.onclick = () => { map.setView([c.lat, c.lng], 16); c.marker.openPopup(); res.classList.add('hidden'); };
-                    res.appendChild(d);
-                });
+        function toggleFilter(type) {
+            if(type === '24hr') {
+                activeFilters.is24hr = !activeFilters.is24hr;
+                document.getElementById('btn24hr').classList.toggle('active');
+            } else {
+                activeFilters.hasER = !activeFilters.hasER;
+                document.getElementById('btnER').classList.toggle('active');
+            }
+            filterClinics();
+        }
+
+        // --- 分頁切換 ---
+        function switchTab(tab) {
+            const list = document.getElementById('listView');
+            const mapDiv = document.getElementById('mapView');
+            const tabL = document.getElementById('tab-list');
+            const tabM = document.getElementById('tab-map');
+
+            if(tab === 'map') {
+                list.classList.add('hidden');
+                mapDiv.classList.remove('hidden');
+                tabL.classList.replace('text-white', 'text-gray-400');
+                tabM.classList.replace('text-gray-400', 'text-white');
+                setTimeout(() => map.invalidateSize(), 200);
+            } else {
+                list.classList.remove('hidden');
+                mapDiv.classList.add('hidden');
+                tabM.classList.replace('text-white', 'text-gray-400');
+                tabL.classList.replace('text-gray-400', 'text-white');
             }
         }
-        function locateUser() { map.locate({setView: true, maxZoom: 16}); }
+
+        // --- 初始化 ---
+        renderClinics(clinics);
+        var map = L.map('map', {zoomControl: false}).setView([22.3193, 114.1694], 12);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+        clinics.forEach(c => L.marker([22.31, 114.17]).addTo(map)); // 簡化版 Marker
+
+        function toggleSidebar() { alert('選單功能開發中...'); }
     </script>
 </body>
 </html>
